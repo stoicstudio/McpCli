@@ -1,0 +1,144 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, main ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ master, main ]
+
+  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish to GitHub Packages'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+
+    outputs:
+      version: ${{ steps.version.outputs.VERSION }}
+      is_release: ${{ steps.version.outputs.IS_RELEASE }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+
+    - name: Determine version
+      id: version
+      shell: bash
+      run: |
+        if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+          VERSION="${GITHUB_REF_NAME#v}"
+          IS_RELEASE="true"
+        else
+          VERSION="0.0.0-dev"
+          IS_RELEASE="false"
+        fi
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "IS_RELEASE=$IS_RELEASE" >> $GITHUB_OUTPUT
+        echo "Version: $VERSION, Is Release: $IS_RELEASE"
+
+    - name: Verify version matches VersionInfo.cs
+      if: steps.version.outputs.IS_RELEASE == 'true'
+      shell: pwsh
+      run: |
+        $Expected = "${{ steps.version.outputs.VERSION }}"
+        $Content = Get-Content src/McpCli/VersionInfo.cs -Raw
+        if ($Content -match 'Version\s*=\s*"([^"]+)"') {
+          $Actual = $Matches[1]
+        } else {
+          Write-Error "Could not extract version from VersionInfo.cs"
+          exit 1
+        }
+        if ($Expected -ne $Actual) {
+          Write-Error "Tag version ($Expected) does not match VersionInfo.cs ($Actual)"
+          exit 1
+        }
+        Write-Host "Version verified: $Expected"
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Test
+      run: dotnet test --configuration Release --no-build --verbosity normal --logger trx --results-directory TestResults
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results
+        path: TestResults/*.trx
+
+    - name: Pack
+      if: steps.version.outputs.IS_RELEASE == 'true'
+      run: dotnet pack src/McpCli/McpCli.csproj --configuration Release --no-build -p:Version=${{ steps.version.outputs.VERSION }} --output ./artifacts
+
+    - name: Upload package artifact
+      if: steps.version.outputs.IS_RELEASE == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: nuget-package
+        path: ./artifacts/*.nupkg
+
+  publish:
+    needs: build-and-test
+    if: needs.build-and-test.outputs.is_release == 'true'
+    runs-on: windows-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Download package artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: nuget-package
+        path: ./artifacts
+
+    - name: Push to GitHub Packages
+      shell: pwsh
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        $packages = Get-ChildItem -Path ./artifacts/*.nupkg
+        foreach ($package in $packages) {
+          Write-Host "Pushing $($package.Name) to GitHub Packages..."
+          dotnet nuget push $package.FullName `
+            --source "https://nuget.pkg.github.com/stoicstudio/index.json" `
+            --api-key $env:GITHUB_TOKEN `
+            --skip-duplicate `
+            --timeout 600
+        }
+
+    - name: Summary
+      shell: bash
+      run: |
+        echo "## Published to GitHub Packages" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Package:** mcp-cli" >> $GITHUB_STEP_SUMMARY
+        echo "**Version:** ${{ needs.build-and-test.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Installation" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo '```bash' >> $GITHUB_STEP_SUMMARY
+        echo "# One-time: Add GitHub Packages source" >> $GITHUB_STEP_SUMMARY
+        echo 'dotnet nuget add source https://nuget.pkg.github.com/stoicstudio/index.json --name stoic --username YOUR_GITHUB_USERNAME --password $(gh auth token)' >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "# Install the tool" >> $GITHUB_STEP_SUMMARY
+        echo "dotnet tool install --global mcp-cli" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY

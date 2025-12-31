@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>McpCli</RootNamespace>
+
+    <!-- .NET Tool Packaging -->
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>mcp-cli</ToolCommandName>
+    <PackageId>mcp-cli</PackageId>
+    <Authors>StoicStudio</Authors>
+    <Description>A command-line interface for interacting with Model Context Protocol (MCP) servers. List tools, get help, and invoke tools from your terminal.</Description>
+    <PackageProjectUrl>https://github.com/stoicstudio/McpCli</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/stoicstudio/McpCli</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>mcp;cli;model-context-protocol;ai;llm;claude;tools</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- CLI argument parsing -->
+    <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Package README -->
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" Condition="Exists('..\..\README.md')" />
+  </ItemGroup>
+
+</Project>
