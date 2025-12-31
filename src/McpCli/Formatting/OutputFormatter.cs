@@ -13,13 +13,21 @@ public static class OutputFormatter
     /// <summary>
     /// Format a tools/list result as a table.
     /// </summary>
-    public static string FormatToolList(ToolListResult result)
+    /// <param name="result">The tool list result.</param>
+    /// <param name="quiet">If true, output only tool names (one per line).</param>
+    public static string FormatToolList(ToolListResult result, bool quiet = false)
     {
         var tools = result.Tools.OrderBy(t => t.Name).ToList();
 
         if (tools.Count == 0)
         {
-            return "No tools available.";
+            return quiet ? "" : "No tools available.";
+        }
+
+        // Quiet mode: just tool names
+        if (quiet)
+        {
+            return string.Join(Environment.NewLine, tools.Select(t => t.Name));
         }
 
         var sb = new StringBuilder();
@@ -60,7 +68,7 @@ public static class OutputFormatter
         }
 
         sb.AppendLine();
-        sb.AppendLine($"Use 'mcp-cli <server> ? <tool>' for detailed help");
+        sb.AppendLine($"Use 'mcp-cli help <server> <tool>' for detailed help");
 
         return sb.ToString();
     }
@@ -68,9 +76,27 @@ public static class OutputFormatter
     /// <summary>
     /// Format detailed help for a single tool.
     /// </summary>
-    public static string FormatToolHelp(ToolInfo tool)
+    /// <param name="tool">The tool info.</param>
+    /// <param name="quiet">If true, output minimal format (name and params only).</param>
+    public static string FormatToolHelp(ToolInfo tool, bool quiet = false)
     {
         var sb = new StringBuilder();
+
+        // Quiet mode: minimal output
+        if (quiet)
+        {
+            sb.AppendLine(tool.Name);
+            if (tool.InputSchema?.Properties is { Count: > 0 } props)
+            {
+                var required = tool.InputSchema.Required ?? new List<string>();
+                foreach (var (name, schema) in props)
+                {
+                    var req = required.Contains(name) ? "*" : "";
+                    sb.AppendLine($"  {name}{req}:{schema.Type ?? "any"}");
+                }
+            }
+            return sb.ToString().TrimEnd();
+        }
 
         // Title
         sb.AppendLine(tool.Name);
@@ -121,15 +147,15 @@ public static class OutputFormatter
         // Example
         sb.AppendLine("Example:");
         var exampleArgs = "";
-        if (tool.InputSchema?.Properties is { Count: > 0 } props)
+        if (tool.InputSchema?.Properties is { Count: > 0 } exProps)
         {
-            var firstProp = props.FirstOrDefault();
+            var firstProp = exProps.FirstOrDefault();
             if (!string.IsNullOrEmpty(firstProp.Key))
             {
                 exampleArgs = $" {firstProp.Key}=\"value\"";
             }
         }
-        sb.AppendLine($"  mcp-cli <server> {tool.Name}{exampleArgs}");
+        sb.AppendLine($"  mcp-cli call <server> {tool.Name}{exampleArgs}");
 
         return sb.ToString();
     }

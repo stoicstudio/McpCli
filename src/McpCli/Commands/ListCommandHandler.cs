@@ -9,7 +9,7 @@ namespace McpCli.Commands;
 /// </summary>
 public static class ListCommandHandler
 {
-    public static async Task ExecuteAsync(string server, int timeout, bool verbose)
+    public static async Task ExecuteAsync(string server, int timeout, bool verbose, bool quiet)
     {
         var (command, args) = ServerParser.ParseServerCommand(server);
 
@@ -56,7 +56,7 @@ public static class ListCommandHandler
             var toolsResult = await client.ListToolsAsync();
 
             // Format and output
-            Console.WriteLine(OutputFormatter.FormatToolList(toolsResult));
+            Console.WriteLine(OutputFormatter.FormatToolList(toolsResult, quiet));
         }
         catch (McpException ex)
         {

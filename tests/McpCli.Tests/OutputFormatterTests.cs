@@ -242,4 +242,67 @@ public class OutputFormatterTests
 
         Assert.Equal("MCP Error [-32600]: Invalid Request", output);
     }
+
+    [Fact]
+    public void FormatToolList_QuietMode_ReturnsOnlyNames()
+    {
+        var result = new ToolListResult
+        {
+            Tools = new List<ToolInfo>
+            {
+                new() { Name = "zebra_tool", Description = "Z description" },
+                new() { Name = "alpha_tool", Description = "A description" }
+            }
+        };
+
+        var output = OutputFormatter.FormatToolList(result, quiet: true);
+
+        // Should be just names, sorted, one per line
+        var lines = output.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
+        Assert.Equal(2, lines.Length);
+        Assert.Equal("alpha_tool", lines[0]);
+        Assert.Equal("zebra_tool", lines[1]);
+        // Should NOT contain descriptions or headers
+        Assert.DoesNotContain("description", output.ToLower());
+        Assert.DoesNotContain("Tool", output);
+    }
+
+    [Fact]
+    public void FormatToolList_QuietMode_EmptyList_ReturnsEmpty()
+    {
+        var result = new ToolListResult { Tools = new List<ToolInfo>() };
+
+        var output = OutputFormatter.FormatToolList(result, quiet: true);
+
+        Assert.Equal("", output);
+    }
+
+    [Fact]
+    public void FormatToolHelp_QuietMode_ShowsMinimalFormat()
+    {
+        var tool = new ToolInfo
+        {
+            Name = "search",
+            Description = "Search for items",
+            InputSchema = new JsonSchema
+            {
+                Properties = new Dictionary<string, JsonSchemaProperty>
+                {
+                    ["query"] = new JsonSchemaProperty { Type = "string" },
+                    ["limit"] = new JsonSchemaProperty { Type = "integer" }
+                },
+                Required = new List<string> { "query" }
+            }
+        };
+
+        var output = OutputFormatter.FormatToolHelp(tool, quiet: true);
+
+        // Should contain tool name and params in minimal format
+        Assert.Contains("search", output);
+        Assert.Contains("query*:string", output); // * indicates required
+        Assert.Contains("limit:integer", output);
+        // Should NOT contain verbose elements
+        Assert.DoesNotContain("Example:", output);
+        Assert.DoesNotContain("Parameters:", output);
+    }
 }

@@ -11,7 +11,7 @@ namespace McpCli.Commands;
 /// </summary>
 public static partial class BatchCommandHandler
 {
-    public static async Task ExecuteAsync(string server, string[] commands, int timeout, bool verbose)
+    public static async Task ExecuteAsync(string server, string[] commands, int timeout, bool verbose, bool quiet)
     {
         if (commands.Length == 0)
         {
@@ -52,7 +52,10 @@ public static partial class BatchCommandHandler
             // Initialize
             await client.InitializeAsync();
 
-            Console.WriteLine($"Batch mode: {commands.Length} command(s)");
+            if (!quiet)
+            {
+                Console.WriteLine($"Batch mode: {commands.Length} command(s)");
+            }
 
             foreach (var cmd in commands)
             {
@@ -73,12 +76,18 @@ public static partial class BatchCommandHandler
                 var (toolName, arguments) = ArgumentParser.ParseBatchCommand(cmd);
                 if (string.IsNullOrEmpty(toolName))
                 {
-                    Console.Error.WriteLine("  Skipping empty command");
+                    if (!quiet)
+                    {
+                        Console.Error.WriteLine("  Skipping empty command");
+                    }
                     continue;
                 }
 
-                Console.WriteLine();
-                Console.WriteLine($"--- [{toolName}] ---");
+                if (!quiet)
+                {
+                    Console.WriteLine();
+                    Console.WriteLine($"--- [{toolName}] ---");
+                }
 
                 if (verbose)
                 {
@@ -102,8 +111,11 @@ public static partial class BatchCommandHandler
                 }
             }
 
-            Console.WriteLine();
-            Console.WriteLine("--- Batch complete ---");
+            if (!quiet)
+            {
+                Console.WriteLine();
+                Console.WriteLine("--- Batch complete ---");
+            }
         }
         catch (McpException ex)
         {

@@ -9,8 +9,10 @@ namespace McpCli.Commands;
 /// </summary>
 public static class CallCommandHandler
 {
-    public static async Task ExecuteAsync(string server, string toolName, string[] toolArgs, int timeout, bool verbose)
+    public static async Task ExecuteAsync(string server, string toolName, string[] toolArgs, int timeout, bool verbose, bool quiet)
     {
+        // quiet parameter reserved for future use (call output is already minimal)
+        _ = quiet;
         var (command, args) = ServerParser.ParseServerCommand(server);
 
         if (verbose)

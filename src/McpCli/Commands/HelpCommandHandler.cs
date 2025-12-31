@@ -9,7 +9,7 @@ namespace McpCli.Commands;
 /// </summary>
 public static class HelpCommandHandler
 {
-    public static async Task ExecuteAsync(string server, string toolName, int timeout, bool verbose)
+    public static async Task ExecuteAsync(string server, string toolName, int timeout, bool verbose, bool quiet)
     {
         var (command, args) = ServerParser.ParseServerCommand(server);
 
@@ -68,7 +68,7 @@ public static class HelpCommandHandler
             }
 
             // Format and output
-            Console.WriteLine(OutputFormatter.FormatToolHelp(tool));
+            Console.WriteLine(OutputFormatter.FormatToolHelp(tool, quiet));
         }
         catch (McpException ex)
         {

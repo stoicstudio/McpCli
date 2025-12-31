@@ -23,6 +23,7 @@ public static class Program
         // Common options
         var timeoutOption = new Option<int>("--timeout", () => 30, "Timeout in seconds for tool calls");
         var verboseOption = new Option<bool>("--verbose", () => false, "Show verbose output including server messages");
+        var quietOption = new Option<bool>(["--quiet", "-q"], () => false, "Minimal output, suitable for scripting");
 
         // === LIST COMMAND ===
         var listCommand = new Command("list", "List all available tools from the server");
@@ -30,7 +31,8 @@ public static class Program
         listCommand.AddArgument(listServerArg);
         listCommand.AddOption(timeoutOption);
         listCommand.AddOption(verboseOption);
-        listCommand.SetHandler(ListCommandHandler.ExecuteAsync, listServerArg, timeoutOption, verboseOption);
+        listCommand.AddOption(quietOption);
+        listCommand.SetHandler(ListCommandHandler.ExecuteAsync, listServerArg, timeoutOption, verboseOption, quietOption);
         rootCommand.AddCommand(listCommand);
 
         // === HELP COMMAND ===
@@ -41,7 +43,8 @@ public static class Program
         helpToolCommand.AddArgument(toolNameArg);
         helpToolCommand.AddOption(timeoutOption);
         helpToolCommand.AddOption(verboseOption);
-        helpToolCommand.SetHandler(HelpCommandHandler.ExecuteAsync, helpServerArg, toolNameArg, timeoutOption, verboseOption);
+        helpToolCommand.AddOption(quietOption);
+        helpToolCommand.SetHandler(HelpCommandHandler.ExecuteAsync, helpServerArg, toolNameArg, timeoutOption, verboseOption, quietOption);
         rootCommand.AddCommand(helpToolCommand);
 
         // === CALL COMMAND ===
@@ -54,7 +57,8 @@ public static class Program
         callCommand.AddArgument(callArgsArg);
         callCommand.AddOption(timeoutOption);
         callCommand.AddOption(verboseOption);
-        callCommand.SetHandler(CallCommandHandler.ExecuteAsync, callServerArg, callToolArg, callArgsArg, timeoutOption, verboseOption);
+        callCommand.AddOption(quietOption);
+        callCommand.SetHandler(CallCommandHandler.ExecuteAsync, callServerArg, callToolArg, callArgsArg, timeoutOption, verboseOption, quietOption);
         rootCommand.AddCommand(callCommand);
 
         // === BATCH COMMAND ===
@@ -65,7 +69,8 @@ public static class Program
         batchCommand.AddArgument(batchCommandsArg);
         batchCommand.AddOption(timeoutOption);
         batchCommand.AddOption(verboseOption);
-        batchCommand.SetHandler(BatchCommandHandler.ExecuteAsync, batchServerArg, batchCommandsArg, timeoutOption, verboseOption);
+        batchCommand.AddOption(quietOption);
+        batchCommand.SetHandler(BatchCommandHandler.ExecuteAsync, batchServerArg, batchCommandsArg, timeoutOption, verboseOption, quietOption);
         rootCommand.AddCommand(batchCommand);
 
         // === DEFAULT HANDLER ===
