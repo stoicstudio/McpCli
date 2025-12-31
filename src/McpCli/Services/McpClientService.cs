@@ -11,9 +11,7 @@ namespace McpCli.Services;
 /// </summary>
 public sealed class McpClientService : IAsyncDisposable
 {
-    private Process? _process;
-    private StreamWriter? _stdin;
-    private StreamReader? _stdout;
+    private IMcpTransport? _transport;
     private int _requestId;
     private bool _disposed;
 
@@ -26,6 +24,21 @@ public sealed class McpClientService : IAsyncDisposable
     /// Default timeout for tool calls (30 seconds).
     /// </summary>
     public TimeSpan CallTimeout { get; set; } = TimeSpan.FromSeconds(30);
+
+    /// <summary>
+    /// Create a client that will start a server process.
+    /// </summary>
+    public McpClientService()
+    {
+    }
+
+    /// <summary>
+    /// Create a client with an injected transport (for testing).
+    /// </summary>
+    public McpClientService(IMcpTransport transport)
+    {
+        _transport = transport;
+    }
 
     /// <summary>
     /// Start an MCP server process.
@@ -41,7 +54,7 @@ public sealed class McpClientService : IAsyncDisposable
         string? workingDirectory = null,
         CancellationToken ct = default)
     {
-        if (_process is not null)
+        if (_transport is not null)
         {
             throw new InvalidOperationException("Server already started");
         }
@@ -66,19 +79,22 @@ public sealed class McpClientService : IAsyncDisposable
 
         try
         {
-            _process = Process.Start(psi);
-            if (_process is null)
+            var process = Process.Start(psi);
+            if (process is null)
             {
                 return false;
             }
 
-            _stdin = _process.StandardInput;
-            _stdout = _process.StandardOutput;
-
             // Give the process a moment to start
             await Task.Delay(100, ct);
 
-            return !_process.HasExited;
+            if (process.HasExited)
+            {
+                return false;
+            }
+
+            _transport = new ProcessTransport(process);
+            return true;
         }
         catch (Exception)
         {
@@ -148,7 +164,7 @@ public sealed class McpClientService : IAsyncDisposable
     /// <summary>
     /// Send a JSON-RPC request and wait for the response.
     /// </summary>
-    private async Task<T> SendRequestAsync<T>(
+    internal async Task<T> SendRequestAsync<T>(
         string method,
         object @params,
         TimeSpan timeout,
@@ -158,8 +174,7 @@ public sealed class McpClientService : IAsyncDisposable
         var requestJson = JsonRpcCodec.SerializeRequest(id, method, @params);
 
         // Send request
-        await _stdin!.WriteLineAsync(requestJson.AsMemory(), ct);
-        await _stdin.FlushAsync(ct);
+        await _transport!.SendLineAsync(requestJson, ct);
 
         // Read response with timeout
         using var timeoutCts = new CancellationTokenSource(timeout);
@@ -167,7 +182,7 @@ public sealed class McpClientService : IAsyncDisposable
 
         try
         {
-            var responseLine = await ReadLineAsync(linkedCts.Token);
+            var responseLine = await _transport.ReadLineAsync(linkedCts.Token);
             if (string.IsNullOrEmpty(responseLine))
             {
                 throw new McpException(-1, "Empty response from server");
@@ -189,19 +204,9 @@ public sealed class McpClientService : IAsyncDisposable
     }
 
     /// <summary>
-    /// Read a line from the server's stdout with cancellation support.
-    /// </summary>
-    private async Task<string?> ReadLineAsync(CancellationToken ct)
-    {
-        // Use Task.Run to make ReadLineAsync cancellable
-        var readTask = _stdout!.ReadLineAsync(ct);
-        return await readTask.AsTask();
-    }
-
-    /// <summary>
     /// Escape an argument for command-line use.
     /// </summary>
-    private static string EscapeArgument(string arg)
+    internal static string EscapeArgument(string arg)
     {
         if (string.IsNullOrEmpty(arg))
         {
@@ -219,7 +224,7 @@ public sealed class McpClientService : IAsyncDisposable
 
     private void EnsureStarted()
     {
-        if (_process is null || _process.HasExited)
+        if (_transport is null || !_transport.IsConnected)
         {
             throw new InvalidOperationException("Server not started or has exited");
         }
@@ -234,30 +239,9 @@ public sealed class McpClientService : IAsyncDisposable
 
         _disposed = true;
 
-        if (_stdin is not null)
+        if (_transport is not null)
         {
-            try
-            {
-                _stdin.Close();
-            }
-            catch { }
-        }
-
-        if (_process is not null)
-        {
-            try
-            {
-                // Give the process a moment to exit gracefully
-                await Task.Delay(100);
-
-                if (!_process.HasExited)
-                {
-                    _process.Kill(entireProcessTree: true);
-                }
-
-                _process.Dispose();
-            }
-            catch { }
+            await _transport.DisposeAsync();
         }
     }
 }
