@@ -14,6 +14,9 @@ public static class CallCommandHandler
     {
         // quiet parameter reserved for future use (call output is already minimal)
         _ = quiet;
+
+        // Resolve alias if applicable
+        server = ConfigService.ResolveServer(server);
         var (command, args) = ServerParser.ParseServerCommand(server);
 
         if (verbose)

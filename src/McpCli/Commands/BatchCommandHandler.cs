@@ -21,6 +21,8 @@ public static partial class BatchCommandHandler
             return;
         }
 
+        // Resolve alias if applicable
+        server = ConfigService.ResolveServer(server);
         var (command, args) = ServerParser.ParseServerCommand(server);
 
         if (verbose)

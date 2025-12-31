@@ -2,6 +2,7 @@ using System.CommandLine;
 using System.CommandLine.Builder;
 using System.CommandLine.Parsing;
 using McpCli.Commands;
+using McpCli.Services;
 
 namespace McpCli;
 
@@ -33,6 +34,34 @@ public static class Program
                 result.ErrorMessage = "Output format must be 'text' or 'json'";
             }
         });
+
+        // === ALIAS COMMAND ===
+        var aliasCommand = new Command("alias", "Manage server aliases");
+
+        // alias list
+        var aliasListCommand = new Command("list", "List all configured aliases");
+        aliasListCommand.SetHandler(AliasCommandHandler.ExecuteList);
+        aliasCommand.AddCommand(aliasListCommand);
+
+        // alias set
+        var aliasSetCommand = new Command("set", "Set a server alias");
+        var aliasNameArg = new Argument<string>("name", "Alias name (e.g., 'flash')");
+        var aliasServerArg = new Argument<string>("server", "Server command (e.g., 'flash-platform-grimoire')");
+        aliasSetCommand.AddArgument(aliasNameArg);
+        aliasSetCommand.AddArgument(aliasServerArg);
+        aliasSetCommand.SetHandler(AliasCommandHandler.ExecuteSet, aliasNameArg, aliasServerArg);
+        aliasCommand.AddCommand(aliasSetCommand);
+
+        // alias remove
+        var aliasRemoveCommand = new Command("remove", "Remove a server alias");
+        var aliasRemoveNameArg = new Argument<string>("name", "Alias name to remove");
+        aliasRemoveCommand.AddArgument(aliasRemoveNameArg);
+        aliasRemoveCommand.SetHandler(AliasCommandHandler.ExecuteRemove, aliasRemoveNameArg);
+        aliasCommand.AddCommand(aliasRemoveCommand);
+
+        // Default alias handler (shows list)
+        aliasCommand.SetHandler(AliasCommandHandler.ExecuteList);
+        rootCommand.AddCommand(aliasCommand);
 
         // === LIST COMMAND ===
         var listCommand = new Command("list", "List all available tools from the server");
@@ -95,12 +124,17 @@ public static class Program
             Console.WriteLine("  help <server> <tool>       Get detailed help for a tool");
             Console.WriteLine("  call <server> <tool>       Call a tool with arguments");
             Console.WriteLine("  batch <server> <commands>  Execute multiple commands");
+            Console.WriteLine("  alias                      Manage server aliases");
             Console.WriteLine();
             Console.WriteLine("Examples:");
             Console.WriteLine("  mcp-cli list roslyn-codex");
             Console.WriteLine("  mcp-cli help roslyn-codex roslyn_find_type");
             Console.WriteLine("  mcp-cli call roslyn-codex roslyn_find_type pattern=\"*Service\"");
             Console.WriteLine("  mcp-cli batch roslyn-codex \"roslyn_get_status\" \"wait:500\" \"roslyn_find_type pattern=*\"");
+            Console.WriteLine();
+            Console.WriteLine("Aliases:");
+            Console.WriteLine("  mcp-cli alias set roslyn roslyn-codex");
+            Console.WriteLine("  mcp-cli call roslyn roslyn_find_type pattern=\"*Service\"");
         });
 
         var parser = new CommandLineBuilder(rootCommand)

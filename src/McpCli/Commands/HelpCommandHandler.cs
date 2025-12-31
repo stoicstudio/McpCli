@@ -12,6 +12,8 @@ public static class HelpCommandHandler
 {
     public static async Task ExecuteAsync(string server, string toolName, int timeout, bool verbose, bool quiet, string output)
     {
+        // Resolve alias if applicable
+        server = ConfigService.ResolveServer(server);
         var (command, args) = ServerParser.ParseServerCommand(server);
 
         if (verbose)
