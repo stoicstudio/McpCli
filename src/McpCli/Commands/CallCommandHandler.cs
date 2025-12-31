@@ -1,3 +1,4 @@
+using System.Text.Json;
 using McpCli.Formatting;
 using McpCli.Protocol;
 using McpCli.Services;
@@ -9,7 +10,7 @@ namespace McpCli.Commands;
 /// </summary>
 public static class CallCommandHandler
 {
-    public static async Task ExecuteAsync(string server, string toolName, string[] toolArgs, int timeout, bool verbose, bool quiet)
+    public static async Task ExecuteAsync(string server, string toolName, string[] toolArgs, int timeout, bool verbose, bool quiet, string output)
     {
         // quiet parameter reserved for future use (call output is already minimal)
         _ = quiet;
@@ -56,7 +57,14 @@ public static class CallCommandHandler
             var result = await client.CallToolAsync(toolName, arguments);
 
             // Format and output
-            Console.WriteLine(OutputFormatter.FormatToolResult(result));
+            if (output == "json")
+            {
+                Console.WriteLine(JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true }));
+            }
+            else
+            {
+                Console.WriteLine(OutputFormatter.FormatToolResult(result));
+            }
         }
         catch (McpException ex)
         {

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using McpCli.Formatting;
 using McpCli.Protocol;
 using McpCli.Services;
@@ -9,7 +10,7 @@ namespace McpCli.Commands;
 /// </summary>
 public static class HelpCommandHandler
 {
-    public static async Task ExecuteAsync(string server, string toolName, int timeout, bool verbose, bool quiet)
+    public static async Task ExecuteAsync(string server, string toolName, int timeout, bool verbose, bool quiet, string output)
     {
         var (command, args) = ServerParser.ParseServerCommand(server);
 
@@ -68,7 +69,14 @@ public static class HelpCommandHandler
             }
 
             // Format and output
-            Console.WriteLine(OutputFormatter.FormatToolHelp(tool, quiet));
+            if (output == "json")
+            {
+                Console.WriteLine(JsonSerializer.Serialize(tool, new JsonSerializerOptions { WriteIndented = true }));
+            }
+            else
+            {
+                Console.WriteLine(OutputFormatter.FormatToolHelp(tool, quiet));
+            }
         }
         catch (McpException ex)
         {

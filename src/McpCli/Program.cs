@@ -24,6 +24,15 @@ public static class Program
         var timeoutOption = new Option<int>("--timeout", () => 30, "Timeout in seconds for tool calls");
         var verboseOption = new Option<bool>("--verbose", () => false, "Show verbose output including server messages");
         var quietOption = new Option<bool>(["--quiet", "-q"], () => false, "Minimal output, suitable for scripting");
+        var outputOption = new Option<string>("--output", () => "text", "Output format: 'text' (default) or 'json'");
+        outputOption.AddValidator(result =>
+        {
+            var value = result.GetValueOrDefault<string>();
+            if (value != "text" && value != "json")
+            {
+                result.ErrorMessage = "Output format must be 'text' or 'json'";
+            }
+        });
 
         // === LIST COMMAND ===
         var listCommand = new Command("list", "List all available tools from the server");
@@ -32,7 +41,8 @@ public static class Program
         listCommand.AddOption(timeoutOption);
         listCommand.AddOption(verboseOption);
         listCommand.AddOption(quietOption);
-        listCommand.SetHandler(ListCommandHandler.ExecuteAsync, listServerArg, timeoutOption, verboseOption, quietOption);
+        listCommand.AddOption(outputOption);
+        listCommand.SetHandler(ListCommandHandler.ExecuteAsync, listServerArg, timeoutOption, verboseOption, quietOption, outputOption);
         rootCommand.AddCommand(listCommand);
 
         // === HELP COMMAND ===
@@ -44,7 +54,8 @@ public static class Program
         helpToolCommand.AddOption(timeoutOption);
         helpToolCommand.AddOption(verboseOption);
         helpToolCommand.AddOption(quietOption);
-        helpToolCommand.SetHandler(HelpCommandHandler.ExecuteAsync, helpServerArg, toolNameArg, timeoutOption, verboseOption, quietOption);
+        helpToolCommand.AddOption(outputOption);
+        helpToolCommand.SetHandler(HelpCommandHandler.ExecuteAsync, helpServerArg, toolNameArg, timeoutOption, verboseOption, quietOption, outputOption);
         rootCommand.AddCommand(helpToolCommand);
 
         // === CALL COMMAND ===
@@ -58,7 +69,8 @@ public static class Program
         callCommand.AddOption(timeoutOption);
         callCommand.AddOption(verboseOption);
         callCommand.AddOption(quietOption);
-        callCommand.SetHandler(CallCommandHandler.ExecuteAsync, callServerArg, callToolArg, callArgsArg, timeoutOption, verboseOption, quietOption);
+        callCommand.AddOption(outputOption);
+        callCommand.SetHandler(CallCommandHandler.ExecuteAsync, callServerArg, callToolArg, callArgsArg, timeoutOption, verboseOption, quietOption, outputOption);
         rootCommand.AddCommand(callCommand);
 
         // === BATCH COMMAND ===
