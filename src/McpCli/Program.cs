@@ -92,6 +92,7 @@ public static class Program
         var callServerArg = new Argument<string>("server", "MCP server command");
         var callToolArg = new Argument<string>("tool", "Tool name to call");
         var callArgsArg = new Argument<string[]>("args", () => Array.Empty<string>(), "Tool arguments in key=value format");
+        var stdinOption = new Option<string?>("--stdin", "Read stdin and assign to this parameter name");
         callCommand.AddArgument(callServerArg);
         callCommand.AddArgument(callToolArg);
         callCommand.AddArgument(callArgsArg);
@@ -99,7 +100,8 @@ public static class Program
         callCommand.AddOption(verboseOption);
         callCommand.AddOption(quietOption);
         callCommand.AddOption(outputOption);
-        callCommand.SetHandler(CallCommandHandler.ExecuteAsync, callServerArg, callToolArg, callArgsArg, timeoutOption, verboseOption, quietOption, outputOption);
+        callCommand.AddOption(stdinOption);
+        callCommand.SetHandler(CallCommandHandler.ExecuteAsync, callServerArg, callToolArg, callArgsArg, timeoutOption, verboseOption, quietOption, outputOption, stdinOption);
         rootCommand.AddCommand(callCommand);
 
         // === BATCH COMMAND ===
@@ -135,6 +137,9 @@ public static class Program
             Console.WriteLine("Aliases:");
             Console.WriteLine("  mcp-cli alias set roslyn roslyn-codex");
             Console.WriteLine("  mcp-cli call roslyn roslyn_find_type pattern=\"*Service\"");
+            Console.WriteLine();
+            Console.WriteLine("Pipe input:");
+            Console.WriteLine("  echo \"Sprite\" | mcp-cli call flash get_api_reference --stdin query");
         });
 
         var parser = new CommandLineBuilder(rootCommand)

@@ -10,10 +10,18 @@ namespace McpCli.Commands;
 /// </summary>
 public static class CallCommandHandler
 {
-    public static async Task ExecuteAsync(string server, string toolName, string[] toolArgs, int timeout, bool verbose, bool quiet, string output)
+    public static async Task ExecuteAsync(string server, string toolName, string[] toolArgs, int timeout, bool verbose, bool quiet, string output, string? stdinParam)
     {
         // quiet parameter reserved for future use (call output is already minimal)
         _ = quiet;
+
+        // Validate stdin option early (before starting server)
+        if (!string.IsNullOrEmpty(stdinParam) && !Console.IsInputRedirected)
+        {
+            Console.Error.WriteLine(OutputFormatter.FormatError("--stdin specified but no input is piped"));
+            Environment.ExitCode = 1;
+            return;
+        }
 
         // Resolve alias if applicable
         server = ConfigService.ResolveServer(server);
@@ -50,6 +58,20 @@ public static class CallCommandHandler
 
             // Parse arguments
             var arguments = ArgumentParser.ParseToolArguments(toolArgs);
+
+            // Handle stdin input (already validated above)
+            if (!string.IsNullOrEmpty(stdinParam))
+            {
+                var stdinValue = await Console.In.ReadToEndAsync();
+                // Trim trailing newline (common when piping)
+                stdinValue = stdinValue.TrimEnd('\r', '\n');
+                arguments[stdinParam] = stdinValue;
+
+                if (verbose)
+                {
+                    Console.Error.WriteLine($"Read {stdinValue.Length} chars from stdin into '{stdinParam}'");
+                }
+            }
 
             if (verbose)
             {
