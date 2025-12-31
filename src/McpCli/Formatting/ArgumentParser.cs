@@ -25,6 +25,16 @@ public static partial class ArgumentParser
 
         foreach (var arg in args)
         {
+            // Check for boolean flag shorthand: --paramName or --param-name
+            if (arg.StartsWith("--") && !arg.Contains('='))
+            {
+                var flagName = arg[2..]; // Remove leading --
+                // Convert kebab-case to camelCase if needed (e.g., --show-details -> showDetails)
+                flagName = KebabToCamelCase(flagName);
+                result[flagName] = true;
+                continue;
+            }
+
             // Check for key=value pattern
             var equalsIndex = arg.IndexOf('=');
             if (equalsIndex > 0)
@@ -195,6 +205,28 @@ public static partial class ArgumentParser
         }
 
         return parts;
+    }
+
+    /// <summary>
+    /// Convert kebab-case to camelCase.
+    /// </summary>
+    private static string KebabToCamelCase(string input)
+    {
+        if (string.IsNullOrEmpty(input) || !input.Contains('-'))
+        {
+            return input;
+        }
+
+        var parts = input.Split('-');
+        var result = parts[0];
+        for (var i = 1; i < parts.Length; i++)
+        {
+            if (parts[i].Length > 0)
+            {
+                result += char.ToUpperInvariant(parts[i][0]) + parts[i][1..];
+            }
+        }
+        return result;
     }
 
     [GeneratedRegex(@"^-?\d+$")]

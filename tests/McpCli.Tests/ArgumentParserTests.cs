@@ -204,4 +204,51 @@ public class ArgumentParserTests
         Assert.IsType<string>(result);
         Assert.Equal("", result);
     }
+
+    [Fact]
+    public void ParseToolArguments_BooleanFlag_ParsesAsTrue()
+    {
+        var result = ArgumentParser.ParseToolArguments(["--verbose"]);
+
+        Assert.True((bool)result["verbose"]!);
+    }
+
+    [Fact]
+    public void ParseToolArguments_MultipleBooleanFlags_AllParsed()
+    {
+        var result = ArgumentParser.ParseToolArguments(["--description", "--source", "--examples"]);
+
+        Assert.True((bool)result["description"]!);
+        Assert.True((bool)result["source"]!);
+        Assert.True((bool)result["examples"]!);
+    }
+
+    [Fact]
+    public void ParseToolArguments_MixedFlagsAndKeyValues_AllParsed()
+    {
+        var result = ArgumentParser.ParseToolArguments(["query=Sprite", "--description", "limit=10", "--source"]);
+
+        Assert.Equal("Sprite", result["query"]);
+        Assert.Equal(10, result["limit"]);
+        Assert.True((bool)result["description"]!);
+        Assert.True((bool)result["source"]!);
+    }
+
+    [Fact]
+    public void ParseToolArguments_KebabCaseFlag_ConvertedToCamelCase()
+    {
+        var result = ArgumentParser.ParseToolArguments(["--include-docs", "--show-details"]);
+
+        Assert.True((bool)result["includeDocs"]!);
+        Assert.True((bool)result["showDetails"]!);
+    }
+
+    [Fact]
+    public void ParseToolArguments_FlagWithEquals_NotTreatedAsFlag()
+    {
+        // --param=value should NOT be treated as a flag
+        var result = ArgumentParser.ParseToolArguments(["--enabled=false"]);
+
+        Assert.False((bool)result["--enabled"]!);
+    }
 }
