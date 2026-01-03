@@ -138,7 +138,7 @@ Found 3 types matching '*Service':
 | Option | Description |
 |--------|-------------|
 | `--timeout <seconds>` | Timeout for tool calls (default: 30) |
-| `--verbose` | Show verbose output including server messages |
+| `-v, --verbose` | Show verbose output including raw JSON-RPC messages (in muted color) |
 
 ## Server Commands
 

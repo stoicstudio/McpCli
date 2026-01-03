@@ -23,7 +23,7 @@ public static class Program
 
         // Common options
         var timeoutOption = new Option<int>("--timeout", () => 30, "Timeout in seconds for tool calls");
-        var verboseOption = new Option<bool>("--verbose", () => false, "Show verbose output including server messages");
+        var verboseOption = new Option<bool>(["-v", "--verbose"], () => false, "Show verbose output including raw JSON-RPC messages");
         var quietOption = new Option<bool>(["--quiet", "-q"], () => false, "Minimal output, suitable for scripting");
         var outputOption = new Option<string>("--output", () => "text", "Output format: 'text' (default) or 'json'");
         outputOption.AddValidator(result =>

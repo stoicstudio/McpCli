@@ -230,4 +230,13 @@ public static class OutputFormatter
             return 100;
         }
     }
+
+    /// <summary>
+    /// Format verbose debug output in a muted color (dim gray).
+    /// </summary>
+    public static string FormatVerbose(string prefix, string content)
+    {
+        // ANSI escape code: \x1b[2m is dim/faint, \x1b[0m resets
+        return $"\x1b[2m{prefix}\x1b[0m\x1b[2m{content}\x1b[0m";
+    }
 }

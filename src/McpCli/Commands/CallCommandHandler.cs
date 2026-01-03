@@ -34,7 +34,8 @@ public static class CallCommandHandler
 
         await using var client = new McpClientService
         {
-            CallTimeout = TimeSpan.FromSeconds(timeout)
+            CallTimeout = TimeSpan.FromSeconds(timeout),
+            Verbose = verbose
         };
 
         // Start server

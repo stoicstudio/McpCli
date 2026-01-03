@@ -26,6 +26,11 @@ public sealed class McpClientService : IAsyncDisposable
     public TimeSpan CallTimeout { get; set; } = TimeSpan.FromSeconds(30);
 
     /// <summary>
+    /// Whether to print verbose debug output (raw JSON-RPC messages).
+    /// </summary>
+    public bool Verbose { get; set; }
+
+    /// <summary>
     /// Create a client that will start a server process.
     /// </summary>
     public McpClientService()
@@ -173,6 +178,12 @@ public sealed class McpClientService : IAsyncDisposable
         var id = Interlocked.Increment(ref _requestId);
         var requestJson = JsonRpcCodec.SerializeRequest(id, method, @params);
 
+        // Print verbose output (raw request)
+        if (Verbose)
+        {
+            Console.Error.WriteLine(Formatting.OutputFormatter.FormatVerbose(">>> ", requestJson));
+        }
+
         // Send request
         await _transport!.SendLineAsync(requestJson, ct);
 
@@ -186,6 +197,12 @@ public sealed class McpClientService : IAsyncDisposable
             if (string.IsNullOrEmpty(responseLine))
             {
                 throw new McpException(-1, "Empty response from server");
+            }
+
+            // Print verbose output (raw response)
+            if (Verbose)
+            {
+                Console.Error.WriteLine(Formatting.OutputFormatter.FormatVerbose("<<< ", responseLine));
             }
 
             var response = JsonRpcCodec.ParseResponse(responseLine);
