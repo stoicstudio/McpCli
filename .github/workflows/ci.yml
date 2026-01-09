@@ -19,6 +19,15 @@ on:
 
 jobs:
   build-and-test:
+    # Skip redundant CI when branch push accompanies a release tag.
+    # When pushing "git push origin master --tags", both branch and tag triggers fire.
+    # The tag-triggered run does full CI + publish, so skip the branch-triggered run
+    # for release commits (those starting with "v") to save runner time.
+    if: >
+      github.event_name == 'pull_request' ||
+      github.event_name == 'workflow_dispatch' ||
+      startsWith(github.ref, 'refs/tags/') ||
+      !startsWith(github.event.head_commit.message, 'v')
     runs-on: windows-latest
 
     outputs:
